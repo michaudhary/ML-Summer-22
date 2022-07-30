@@ -1,0 +1,100 @@
+import time
+start_time = time.time()
+import librosa
+import pandas as pd
+import os
+import librosa
+import librosa.display
+import numpy as np
+import IPython.display as ipd
+import matplotlib.pyplot as plt
+
+def features_extractor_mfcc(file):
+    audio, sample_rate = librosa.load(file, res_type='kaiser_fast') 
+    mfccs_features = librosa.feature.mfcc(y=audio, sr=sample_rate, n_mfcc=60)
+    mfccs_scaled_features = np.mean(mfccs_features.T,axis=0)
+    return mfccs_scaled_features
+def features_extractor_cqt(file_name):
+	audio, sample_rate = librosa.load(file_name, res_type='kaiser_fast') 
+	cqt_features = librosa.cqt(y=audio, sr=sample_rate,n_bins = 60,hop_length = 1000000)
+	cqt_features.reshape(60,)
+	return cqt_features
+
+def features_extractor_iter(names,count):
+  extracted_features = []
+  for name in names:
+    for j in range(count):
+       file_name = 'C://Users/LENOVO/Desktop/dataset/' + name + '.' + str(j) + '.wav'
+       datam = features_extractor_mfcc(file_name)
+       datac = features_extractor_cqt(file_name)
+       data = np.array([])
+       data = np.append(data,datam)
+       data = np.append(data,datac)
+       extracted_features.append([data, name])
+  return extracted_features
+
+extracted_features = features_extractor_iter(['hiphop','blues','jazz', 'classical','rock','qawwali'],70)
+
+extracted_features_df = pd.DataFrame(extracted_features,columns=['feature','class'])
+X = np.array(extracted_features_df['feature'].tolist())
+y = np.array(extracted_features_df['class'].tolist())
+print(X.shape)
+
+from tensorflow.keras.utils import to_categorical
+from sklearn.preprocessing import LabelEncoder
+labelencoder = LabelEncoder()
+y = to_categorical(labelencoder.fit_transform(y))
+from sklearn.model_selection import train_test_split
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.2,random_state=0)
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense,Dropout,Activation,Flatten
+from tensorflow.keras.optimizers import Adam
+from sklearn import metrics
+
+model=Sequential()
+#First layer
+model.add(Dense(100,input_shape=(120,)))
+model.add(Activation('relu'))
+model.add(Dropout(0.5))
+#Second layer
+model.add(Dense(200))
+model.add(Activation('relu'))
+model.add(Dropout(0.5))
+###final layer
+model.add(Dense(6))
+model.add(Activation('softmax'))
+
+model.compile(loss='categorical_crossentropy',metrics = ['accuracy'],optimizer='adam')
+
+from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.callbacks import EarlyStopping
+from datetime import datetime 
+
+num_epochs = 200
+num_batch_size = 32
+
+checkpointer = ModelCheckpoint(filepath='saved_models/audio_classification.hdf5', 
+                               verbose=1, save_best_only=True)
+start = datetime.now()
+model.fit(X_train, y_train, batch_size=num_batch_size, epochs=num_epochs, validation_data = (X_test, y_test), callbacks=[checkpointer], verbose=1)
+
+duration = datetime.now() - start
+print('Training completed in time: ', duration)
+
+train_accuracy = model.evaluate(X,y,verbose=0)
+print('Training accuracy is ' + str(train_accuracy[1]))
+
+test_accuracy = model.evaluate(X_test,y_test,verbose=0)
+print('Test accuracy is ' + str(test_accuracy[1]))
+predicted_label = model.predict(X_test)
+
+classes_x = np.argmax(predicted_label,axis=1)
+prediction_class = labelencoder.inverse_transform(classes_x)
+prediction_class = to_categorical(labelencoder.fit_transform(prediction_class))
+m = tf.keras.metrics.Recall(class_id = 10)
+m.update_state(y_test,prediction_class)
+print('Recall for the test set is ' + str(m.result().numpy()))
+
+end_time = time.time()
+print('Full time required was ' + str(end_time - start_time))
