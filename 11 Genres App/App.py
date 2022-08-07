@@ -18,7 +18,7 @@ import seaborn as sns
 yamnet_model_handle = 'https://tfhub.dev/google/yamnet/1'
 yamnet_model = hub.load(yamnet_model_handle)
 
-model = keras.models.load_model('C://Users/MAKTAB/Documents')
+model = keras.models.load_model(os.getcwd())
 from sklearn.preprocessing import LabelEncoder
 labelencoder=LabelEncoder()
 def load_wav_16k_mono(filename):
