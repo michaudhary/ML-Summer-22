@@ -59,7 +59,7 @@ def save_uploaded_file(uploaded_file):
 
     try:
 
-        with open(os.path.join('C:\\Users\\MAKTAB\\Documents',uploaded_file.name),'wb') as f:
+        with open(os.path.join(os.getcwd(),uploaded_file.name),'wb') as f:
 
             f.write(uploaded_file.getbuffer())
 
@@ -74,7 +74,7 @@ if uploaded_file is not None:
         audio_bytes = uploaded_file.read()
         st.audio(audio_bytes)
         prediction = predict(os.path.join('C:\\Users\\MAKTAB\\Documents', uploaded_file.name))
-        os.remove(os.path.join('C:\\Users\\MAKTAB\\Documents',uploaded_file.name))
+        os.remove(os.path.join(os.getcwd(),uploaded_file.name))
         st.text('We predict its genre to be ' + prediction)
     else:
         st.text('Sorry, we had some problems saving your file')
